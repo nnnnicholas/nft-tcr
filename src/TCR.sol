@@ -46,8 +46,8 @@ contract NFTTCR is ERC721, JBETHERC20ProjectPayer {
     JBReconfig public reconfig;
 
     constructor(
-        string memory _name,
-        string memory _symbol,
+        // string memory _name,
+        // string memory _symbol,
         address _tokenResolver,
         uint256 _mintFee,
         JBController _controller,
@@ -56,7 +56,7 @@ contract NFTTCR is ERC721, JBETHERC20ProjectPayer {
         address _beneficiary,
         IJBDirectory _directory
     )
-        ERC721(_name, _symbol)
+        ERC721("NFTTCR", "TCR")
         JBETHERC20ProjectPayer(
             _treasuryId,
             payable(_beneficiary),
