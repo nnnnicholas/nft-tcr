@@ -76,7 +76,7 @@ contract NFTTCR is ERC721, JBETHERC20ProjectPayer {
         dir = _directory;
     }
 
-    function mint() public payable {
+    function mint() external payable {
         require(msg.value == mintFee, "Mint fee not paid");
         totalSupply += 1;
         _safeMint(msg.sender, totalSupply);
@@ -93,12 +93,12 @@ contract NFTTCR is ERC721, JBETHERC20ProjectPayer {
         );
     }
 
-    function setTokenResolver(address newTokenResolver) public onlyOwner {
+    function setTokenResolver(address newTokenResolver) external onlyOwner {
         tokenResolver = newTokenResolver;
         emit TokenResolverUpdated(newTokenResolver);
     }
 
-    function setMintFee(uint256 newMintFee) public onlyOwner {
+    function setMintFee(uint256 newMintFee) external onlyOwner {
         mintFee = newMintFee;
         emit MintFeeUpdated(newMintFee);
     }
@@ -121,7 +121,7 @@ contract NFTTCR is ERC721, JBETHERC20ProjectPayer {
         }
     }
 
-    function vote(uint256 projectId) public {
+    function vote(uint256 projectId) external {
         uint256 senderBalance = balanceOf(msg.sender);
         require(senderBalance > 0, "Insufficient balance");
         resetVote();
@@ -148,7 +148,7 @@ contract NFTTCR is ERC721, JBETHERC20ProjectPayer {
         }
     }
 
-    function updateJuicebox() public {
+    function updateJuicebox() external {
         JBReconfig memory config = reconfig;
         config.groupedSplits[0].splits[0].projectId = peoplesChoice; // Update recepient based on TCR
         controller.reconfigureFundingCyclesOf(
