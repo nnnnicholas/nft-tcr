@@ -1,3 +1,22 @@
+# NFT TCR
+
+Decentralized projects can raise funds by selling NFTs, but fund distribution remains a manual process requiring lots of human intervention, whether it be via EOA, Multisig, or Onchain DAO governance. 
+
+The goal of the NFT TCR is to demonstrate that projects can raise funds using NFTs, point the revenues from those sales at a Juicebox project, and then administer regular funding rounds by voting using an onchain token curated registry (TCR). 
+
+Advantages: 
+- Fully autonomous: Set it and forget it, and the project continues to distribute funds at a regular interval
+- Donor empowerment: NFT collectors are able to express their preference for which project receives funding, without having to vote in many independent timed proposal rounds
+- Minimal design: Purpose built for configuring a Juicebox treasury, this minimal NFT TCR is comprehensible and an achievable short-term experiment towards NFT TCR PMF
+
+
+
+
+
+
+
+Tempalte info
+
 # juice-contract-template
 Template used to code juicy solidity stuff - includes forge, libs, etc. 
 
