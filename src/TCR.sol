@@ -1,24 +1,59 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import {JBController} from "@jbx-protocol/juice-contracts-v3/contracts/JBController.sol";
+import {JBFundingCycleData} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleData.sol";
+import {JBFundAccessConstraints} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundAccessConstraints.sol";
+import {JBFundingCycleMetadata} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleMetadata.sol";
+import {JBGroupedSplits} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBGroupedSplits.sol";
+import {JBSplit} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBSplit.sol";
 
-contract MyNFT is ERC721, Ownable {
+contract NFTTCR is ERC721, Ownable {
     using Strings for uint256;
+
+    event PeoplesChoiceChanged(uint256 newPeoplesChoice);
+    event Vote(address voter, uint256 projectId);
+    event TokenResolverUpdated(address newTokenResolver);
+    event JBReconfigUpdated(JBReconfig newReconfig);
+    event MintFeeUpdated(uint256 newMintFee);
 
     uint256 private _totalSupply;
     uint256 private _mintFee;
+    uint256 public peoplesChoice;
 
     mapping(uint256 => uint256) public totalVotes;
-    mapping(address => uint256) public vote;
+    mapping(address => uint256) public votes;
     mapping(address => uint256) public balanceAtVote;
 
     address public tokenResolver;
+    JBController public controller;
 
-    constructor(string memory name, string memory symbol, address _tokenResolver, uint256 mintFee) ERC721(name, symbol) {
+    struct JBReconfig {
+        uint256 projectId;
+        JBFundingCycleData data;
+        JBFundingCycleMetadata metadata;
+        uint256 mustStartAtOrAfter;
+        JBGroupedSplits[] groupedSplits;
+        JBFundAccessConstraints[] fundAccessConstraints;
+        string memo;
+    }
+
+    JBReconfig public reconfig;
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        address _tokenResolver,
+        uint256 mintFee,
+        JBController _controller,
+        JBReconfig memory _reconfig
+    ) ERC721(name, symbol) {
         tokenResolver = _tokenResolver;
         _mintFee = mintFee;
+        controller = _controller;
+        reconfig = _reconfig;
     }
 
     function mint() public payable {
@@ -29,20 +64,28 @@ contract MyNFT is ERC721, Ownable {
 
     function setTokenResolver(address newTokenResolver) public onlyOwner {
         tokenResolver = newTokenResolver;
+        emit TokenResolverUpdated(newTokenResolver);
     }
 
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+    function setMintFee(uint256 newMintFee) public onlyOwner {
+        _mintFee = newMintFee;
+        emit MintFeeUpdated(newMintFee);
+    }
+
+    function tokenURI(
+        uint256 tokenId
+    ) public view virtual override returns (string memory) {
         require(_exists(tokenId), "Token does not exist");
         return ITokenResolver(tokenResolver).tokenURI(tokenId);
     }
 
     function resetVote() internal {
         address voter = msg.sender;
-        uint256 projectId = vote[voter];
+        uint256 projectId = votes[voter];
         if (projectId > 0) {
             uint256 voteBalance = balanceAtVote[voter];
             totalVotes[projectId] -= voteBalance;
-            vote[voter] = 0;
+            votes[voter] = 0;
             balanceAtVote[voter] = 0;
         }
     }
@@ -52,17 +95,41 @@ contract MyNFT is ERC721, Ownable {
         require(senderBalance > 0, "Insufficient balance");
         resetVote();
         totalVotes[projectId] += senderBalance;
-        vote[msg.sender] = projectId;
+        votes[msg.sender] = projectId;
         balanceAtVote[msg.sender] = senderBalance;
-        transfer(address(this), senderBalance);
+        emit Vote(msg.sender, projectId);
+        if (totalVotes[projectId] > totalVotes[peoplesChoice]) {
+            peoplesChoice = projectId;
+            emit PeoplesChoiceChanged(projectId);
+        }
     }
 
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId) internal virtual override {
-        super._beforeTokenTransfer(from, to, tokenId);
-    
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 firstTokenId,
+        uint256 batchSize
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
+
         if (from != address(0) || to != address(0)) {
             resetVote();
         }
+    }
+
+    function updateJuicebox() public {
+        JBReconfig memory config = reconfig;
+        config.groupedSplits[0].splits[0].projectId = peoplesChoice; // Update recepient based on TCR
+        controller.reconfigureFundingCyclesOf(
+            config.projectId,
+            config.data,
+            config.metadata,
+            config.mustStartAtOrAfter,
+            config.groupedSplits,
+            config.fundAccessConstraints,
+            config.memo
+        );
+        emit JBReconfigUpdated(config);
     }
 }
 
