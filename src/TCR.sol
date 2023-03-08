@@ -9,8 +9,9 @@ import {JBFundAccessConstraints} from "@jbx-protocol/juice-contracts-v3/contract
 import {JBFundingCycleMetadata} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBFundingCycleMetadata.sol";
 import {JBGroupedSplits} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBGroupedSplits.sol";
 import {JBSplit} from "@jbx-protocol/juice-contracts-v3/contracts/structs/JBSplit.sol";
+import {JBETHERC20ProjectPayer, JBTokens, IJBDirectory} from "@jbx-protocol/juice-contracts-v3/contracts/JBETHERC20ProjectPayer.sol";
 
-contract NFTTCR is ERC721, Ownable {
+contract NFTTCR is ERC721, JBETHERC20ProjectPayer {
     using Strings for uint256;
 
     event PeoplesChoiceChanged(uint256 newPeoplesChoice);
@@ -19,9 +20,11 @@ contract NFTTCR is ERC721, Ownable {
     event JBReconfigUpdated(JBReconfig newReconfig);
     event MintFeeUpdated(uint256 newMintFee);
 
-    uint256 private _totalSupply;
-    uint256 private _mintFee;
+    uint256 public totalSupply;
+    uint256 public mintFee;
     uint256 public peoplesChoice;
+    uint256 public treasuryId;
+    IJBDirectory public dir;
 
     mapping(uint256 => uint256) public totalVotes;
     mapping(address => uint256) public votes;
@@ -43,23 +46,51 @@ contract NFTTCR is ERC721, Ownable {
     JBReconfig public reconfig;
 
     constructor(
-        string memory name,
-        string memory symbol,
+        string memory _name,
+        string memory _symbol,
         address _tokenResolver,
-        uint256 mintFee,
+        uint256 _mintFee,
         JBController _controller,
-        JBReconfig memory _reconfig
-    ) ERC721(name, symbol) {
+        JBReconfig memory _reconfig,
+        uint256 _treasuryId,
+        address _beneficiary,
+        IJBDirectory _directory
+    )
+        ERC721(_name, _symbol)
+        JBETHERC20ProjectPayer(
+            _treasuryId,
+            payable(_beneficiary),
+            false,
+            "Minted",
+            "",
+            false,
+            _directory,
+            address(this)
+        )
+    {
         tokenResolver = _tokenResolver;
-        _mintFee = mintFee;
+        mintFee = _mintFee;
         controller = _controller;
         reconfig = _reconfig;
+        treasuryId = _treasuryId;
+        dir = _directory;
     }
 
     function mint() public payable {
-        require(msg.value == _mintFee, "Mint fee not paid");
-        _totalSupply += 1;
-        _safeMint(msg.sender, _totalSupply);
+        require(msg.value == mintFee, "Mint fee not paid");
+        totalSupply += 1;
+        _safeMint(msg.sender, totalSupply);
+        _pay(
+            treasuryId, //uint256 _projectId,`
+            JBTokens.ETH, // address _token
+            msg.value, //uint256 _amount,
+            18, //uint256 _decimals,
+            msg.sender, //address _beneficiary,
+            0, //uint256 _minReturnedTokens,
+            false, //bool _preferClaimedTokens,
+            "Minted",
+            "" //bytes calldata _metadata
+        );
     }
 
     function setTokenResolver(address newTokenResolver) public onlyOwner {
@@ -68,7 +99,7 @@ contract NFTTCR is ERC721, Ownable {
     }
 
     function setMintFee(uint256 newMintFee) public onlyOwner {
-        _mintFee = newMintFee;
+        mintFee = newMintFee;
         emit MintFeeUpdated(newMintFee);
     }
 
@@ -130,6 +161,20 @@ contract NFTTCR is ERC721, Ownable {
             config.memo
         );
         emit JBReconfigUpdated(config);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    )
+        public
+        view
+        virtual
+        override(ERC721, JBETHERC20ProjectPayer)
+        returns (bool)
+    {
+        return
+            JBETHERC20ProjectPayer.supportsInterface(interfaceId) ||
+            ERC721.supportsInterface(interfaceId);
     }
 }
 
