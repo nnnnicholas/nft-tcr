@@ -21,10 +21,7 @@ Architecture:
 
 
 
-
-Tempalte info
-
-# juice-contract-template
+# juice-contract-template info
 Template used to code juicy solidity stuff - includes forge, libs, etc. 
 
 This template is a good starting point for building solidity extensions to the Juicebox Protocol. Forking this template may help you to avoid submodule related dependency issues down the road.
