@@ -10,6 +10,13 @@ Advantages:
 - Minimal design: Purpose built for configuring a Juicebox treasury, this minimal NFT TCR is comprehensible and an achievable short-term experiment towards NFT TCR PMF
 
 
+Architecture:
+- Each NFT constitutes a vote
+- Collectors can vote for any Juicebox Project ID
+- The Project with the most votes is elected the People's Choice
+- Funding cycles are of a fixed duration and distribution limit (e.g., 1 weekly $1000 grant)
+- An external function allows anyone to update the treasury's funding cycle configuration to point the next payout to the current People's Choice
+- Vote tracking is kept lightweight; every time a collector sends or receives an NFT, thier prior votes are reset.
 
 
 
